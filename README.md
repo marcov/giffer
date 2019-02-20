@@ -6,7 +6,7 @@ giffer is a simple animated gif file generator written in Go.
 
 ## Usage
 
-> **Note**: if your `$PATH` does not contain `$GOPATH/bin`, you nee to specify it when invoking `giffer`
+> **Note**: be sure your `$PATH` variable includes `$GOPATH/bin`
 
 ```
 giffer <OPTIONS> DIRECTORY_NAME
