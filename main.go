@@ -20,7 +20,9 @@ import (
 )
 
 const (
+	MYNAME  = "giffer"
 	VERSION = "1.0"
+	OUTFILE = "output.gif"
 )
 
 // Converts an image to an image.Paletted with 256 colors.
@@ -52,19 +54,28 @@ func processJpeg(path string) (error, *image.Paletted) {
 	return nil, imageToPaletted(img)
 }
 
+func usage() {
+	fmt.Fprintf(flag.CommandLine.Output(), `NAME:
+   %s - generate animated gifs from jpeg files
+
+USAGE:
+   %s [options] <path>
+
+By default, %s searches for jpeg files at the specified path and writes the animated gif to %s
+
+Options:
+`, MYNAME, MYNAME, MYNAME, OUTFILE)
+
+	flag.PrintDefaults()
+}
+
 func main() {
 	verbose := flag.Bool("d", false, "debug mode")
-	outfile := flag.String("o", "output.gif", "name of the output gif file name")
-	delayMs := flag.Uint("t", 100, "delay (ms) between successive images")
+	outfile := flag.String("o", OUTFILE, "write the animated git to this destination")
+	delayMs := flag.Uint("t", 100, "gif inter-frame delay (ms)")
 	version := flag.Bool("v", false, "print version and exit")
 
-	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
-		fmt.Fprintf(flag.CommandLine.Output(), "%s <options> dirname\n", os.Args[0])
-		fmt.Fprint(flag.CommandLine.Output(), "Options:\n")
-		flag.PrintDefaults()
-	}
-
+	flag.Usage = usage
 	flag.Parse()
 
 	if *verbose {
@@ -73,7 +84,7 @@ func main() {
 	}
 
 	if *version {
-		fmt.Printf("%s -- v%s\n", os.Args[0], VERSION)
+		fmt.Printf("%s -- v%s\n", MYNAME, VERSION)
 		return
 	}
 
@@ -84,10 +95,16 @@ func main() {
 	}
 
 	args := flag.Args()
-	if len(args) != 1 {
-		logrus.Error("you need to specify a single argument as directory")
+	if len(args) == 0 {
+		usage()
 		return
 	}
+
+	if len(args) > 0 {
+		logrus.Error("wrong number of arguments")
+		return
+	}
+
 	dirname := args[0]
 
 	var imgPaths []string
@@ -111,6 +128,11 @@ func main() {
 		return
 	}
 
+	if len(imgPaths) == 0 {
+		logrus.Errorf("could not find any jpeg files at provided path")
+		return
+	}
+
 	var mutex sync.Mutex
 	gifInfo := &gif.GIF{}
 	gifInfo.Image = make([]*image.Paletted, len(imgPaths))
@@ -121,8 +143,8 @@ func main() {
 	sem := semaphore.NewWeighted(int64(numcpus))
 
 	logrus.WithFields(logrus.Fields{
-		"number":  len(imgPaths),
-		"// jobs": numcpus,
+		"// jobs":     numcpus,
+		"num of pics": len(imgPaths),
 	}).Info("Parallel processing jpeg files")
 
 	bar := pb.New(len(imgPaths))
