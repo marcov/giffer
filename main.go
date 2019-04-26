@@ -100,7 +100,7 @@ func main() {
 		return
 	}
 
-	if len(args) > 0 {
+	if len(args) > 1 {
 		logrus.Error("wrong number of arguments")
 		return
 	}
